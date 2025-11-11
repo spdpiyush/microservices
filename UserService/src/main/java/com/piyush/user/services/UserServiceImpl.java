@@ -2,6 +2,7 @@ package com.piyush.user.services;
 
 import com.piyush.user.entities.User;
 import com.piyush.user.exceptions.NotFoundException;
+import com.piyush.user.external.HotelService;
 import com.piyush.user.models.Hotel;
 import com.piyush.user.models.Rating;
 import com.piyush.user.repositories.UserRepository;
@@ -27,6 +28,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private HotelService hotelService;
+
     @Override
     public User saveUser(User user) {
         String userId = UUID.randomUUID().toString();
@@ -51,8 +55,8 @@ public class UserServiceImpl implements UserService {
 
         List<Rating> ratingList = ratings.stream()
                         .map(rating -> {
-                            ResponseEntity<Hotel> responseEntity = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/" + rating.getHotelId(), Hotel.class);
-                            Hotel hotel = responseEntity.getBody();
+                            //ResponseEntity<Hotel> responseEntity = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/" + rating.getHotelId(), Hotel.class);
+                            Hotel hotel = hotelService.getHotel(rating.getHotelId());
                             rating.setHotel(hotel);
                             return rating;
                         }).collect(Collectors.toList());
