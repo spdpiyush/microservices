@@ -3,6 +3,8 @@ package com.piyush.user.controller;
 import com.piyush.user.entities.User;
 import com.piyush.user.services.UserService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,8 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    private int retryCount = 0;
+
     @PostMapping("/create")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User user1 = userService.saveUser(user);
@@ -32,8 +36,12 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    //@CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
+    //@Retry(name = "ratingHotelRetry", fallbackMethod = "ratingHotelFallback")
+    @RateLimiter(name = "getUserRateLimiter", fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User> getUser(@PathVariable String userId) {
+        log.info("Retry Count={}", retryCount);
+        retryCount++;
         User user = userService.getUser(userId);
         return ResponseEntity.ok(user);
     }
@@ -53,6 +61,6 @@ public class UserController {
                 .name("dummy")
                 .email("dummy@dummy.com")
                 .build();
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        return new ResponseEntity<>(user, HttpStatus.BAD_REQUEST);
     }
 }
