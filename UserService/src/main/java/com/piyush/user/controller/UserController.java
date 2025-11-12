@@ -2,6 +2,8 @@ package com.piyush.user.controller;
 
 import com.piyush.user.entities.User;
 import com.piyush.user.services.UserService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -29,6 +32,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
+    @CircuitBreaker(name = "ratingHotelBreaker", fallbackMethod = "ratingHotelFallback")
     public ResponseEntity<User> getUser(@PathVariable String userId) {
         User user = userService.getUser(userId);
         return ResponseEntity.ok(user);
@@ -38,5 +42,17 @@ public class UserController {
     public ResponseEntity<List<User>> getAllUser() {
         List<User> users = userService.getAllUser();
         return ResponseEntity.ok(users);
+    }
+
+
+    // fall back (ratingHotelFallback) method for circuitBreaker
+    public ResponseEntity<User> ratingHotelFallback(String userId, Exception ex) {
+        log.info("ratingHotelFallback is called because service is down: ", ex.getMessage());
+        User user =  User.builder()
+                .userId("dummy001")
+                .name("dummy")
+                .email("dummy@dummy.com")
+                .build();
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 }
